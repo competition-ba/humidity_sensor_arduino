@@ -9,8 +9,10 @@
  */
 #include<EEPROM.h>
 #include <SoftwareSerial.h>
+//是否开启调试模式
+#define DEBUG
 SoftwareSerial mySerial(12, 11);//TX:12;RX:11
-char* format="{\"GUID\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"DATA\":\"%2.2f\"}";
+char* format="{\"GUID\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"DATA\":\"";
 char ipdump[16];
 void setup() {
     String ssid,pwd;
@@ -18,7 +20,7 @@ void setup() {
     char ch;
     //初始化ESP8266 WIFI模块通信串口
     Serial.begin(9600);
-    mySerial.begin(9600);
+    mySerial.begin(115200);
     //将设备GUID填入data中
     for (int i=0x00;i<0x20;i++)
         format[i+9] = (char)EEPROM.read(i);
@@ -28,18 +30,22 @@ void setup() {
     //读取IP地址
     sprintf(ipdump,"%d.%d.%d.%d",EEPROM.read(0x20),EEPROM.read(0x21),EEPROM.read(0x22),EEPROM.read(0x23));
     //初始化WIFI模块
-    mySerial.begin(115200);
     mySerial.println("AT+RST");   // 初始化重启一次esp8266
     delay(1500);
     mySerial.println("AT");
     delay(500);
     mySerial.println("AT+CWMODE=3");  // 设置Wi-Fi模式
     i = 0x24;
-    while(ch=EEPROM.read(i++)!=0xFE)
+    while((ch=(char)EEPROM.read(i++))!=0xFE)
         ssid += ch;
-    while(ch=EEPROM.read(i++)!=0xFE)
+    i = i;
+    while((ch=(char)EEPROM.read(i++))!=0xFE)
         pwd += ch;        
-    mySerial.println("AT+CWJAP=\""+ssid+"\",\""+pwd+"\"");  // 连接Wi-Fi
+    mySerial.print("AT+CWJAP=\"");
+    mySerial.print(ssid);
+    mySerial.print("\",\"");
+    mySerial.print( pwd);
+    mySerial.print( "\"");// 连接Wi-Fi
     while (mySerial.available()) {
         Serial.write(mySerial.read());
     }
@@ -58,21 +64,35 @@ void initVal(){
     while(1){
         //发送GUID
         for(int i=0x00;i<0x20;i++)
-            Serial.print(EEPROM.read(i));
+            Serial.print((char)EEPROM.read(i));
+        Serial.println();
         //接受相关信息
         char ch;
         int i;
-        delay(100);
+        delay(1000);
+        #ifdef DEBUG
+        Serial.print(Serial.available());
+        #endif
         while(Serial.available()>0){
             for(i=0x20;i<0x24;i++)//Target IP
-                EEPROM.write(i,Serial.read());
-            while(ch=Serial.read()!=0xFE)//SSID
+                EEPROM.write(i,(char)Serial.read());
+            #ifdef DEBUG
+            Serial.println("target IP OK,received:"+EEPROM.read(0x20)+EEPROM.read(0x21)+EEPROM.read(0x22)+EEPROM.read(0x23));
+            #endif
+           while((ch=(char)Serial.read())!=0xFE)//SSID
                 EEPROM.write(i++,ch);
-            EEPROM.write(++i,0xFE);
-            while(ch=Serial.read()!=0xFE)//PWD
+            EEPROM.write(i,0xFE);
+            #ifdef DEBUG
+            Serial.println("SSID OK,Waiting for PWD");
+            #endif
+            while((ch=(char)Serial.read())!=0xFE)//PWD
                 EEPROM.write(i++,ch);
+            EEPROM.write(i,0xFE);
             //给出配置完成flag
             EEPROM.write(0x7F,0x01);
+            #ifdef DEBUG
+            Serial.println("ALL ARE OK");
+            #endif
             goto out;
         }
     }
@@ -82,8 +102,6 @@ void uploadData(){
     /*JSON数据：
      * {"GUID":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","DATA":"XX.XX"}
      */
-    char data[59];
-    sprintf(data,format,0.00);
     mySerial.println("AT+CIPMODE=1");
     mySerial.print("AT+CIPSTART=\"TCP\",\"");  // 连接服务器的80端口
     mySerial.print(ipdump);
@@ -93,8 +111,10 @@ void uploadData(){
     mySerial.print("POST /update.jsp"); // 开始发送post请求
     mySerial.print(" HTTP/1.1\r\nHost: "); // post请求的报文格式 
     mySerial.print(ipdump);
-    mySerial.print("\r\nUser-Agent: arduino-ethernet\r\nConnection:close\r\nContent-Length:59\r\n\r\n");
-    mySerial.println(data); // 结束post请求
+    mySerial.print("\r\nUser-Agent: arduino-ethernet\r\nConnection:close\r\nContent-Length:58\r\n\r\n");
+    mySerial.print(format);
+    mySerial.print(20.31231,2);
+    mySerial.println("\"}");// 结束post请求
     delay(3000);
     mySerial.print("+++"); 
 }
