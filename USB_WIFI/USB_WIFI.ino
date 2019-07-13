@@ -109,7 +109,7 @@ void uploadData(){
     delay(1000);
     mySerial.println("AT+CIPSEND"); // 进入TCP透传模式，接下来发送的所有消息都会发送给服务器
     mySerial.print("POST /update.jsp"); // 开始发送post请求
-    mySerial.print(" HTTP/1.1\r\nHost: "); // post请求的报文格式 
+    mySerial.print(" HTTP/1.1\r\nContent-Type: application/json;charset=utf-8\r\nHost: "); // post请求的报文格式 
     mySerial.print(ipdump);
     mySerial.print("\r\nUser-Agent: arduino-ethernet\r\nConnection:close\r\nContent-Length:58\r\n\r\n");
     mySerial.print(format);
