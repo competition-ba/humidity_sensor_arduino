@@ -2,11 +2,11 @@
 #include <PN532_SPI.h>
 #include <PN532Interface.h>
 #include <PN532.h>
-
+#include <EEPROM.h>
 PN532_SPI pn532spi(SPI, 10);
 PN532 nfc(pn532spi);
 
-
+char GUID[0x20];//GUID DATA
 void setup()
 {    
     Serial.begin(9600);
@@ -32,6 +32,8 @@ void setup()
     
     // configure board to read RFID tags
     nfc.SAMConfig();
+    for(int i=0;i<0x20;i++)
+        GUID[i] = EEPROM.read(i);
 }
 
 void loop()
@@ -54,7 +56,7 @@ void loop()
                               0x04, /* P1  */
                               0x00, /* P2  */
                               0x07, /* Length of AID  */
-                              0x01,0x02,0x03,0x04,0x05,0x06,0x07, /* "JINGSAI" */
+                              0x4A,0x49,0x4E,0x47,0x53,0x41,0x49, /* "JINGSAI" */
                               0x00  /* Le  */ };
                               
     uint8_t response[32];  
@@ -68,17 +70,18 @@ void loop()
       nfc.PrintHexChar(response, responseLength);
       
       do {
-        uint8_t apdu[] = "Hello from Arduino";
         uint8_t back[32];
         uint8_t length = 32; 
 
-        success = nfc.inDataExchange(apdu, sizeof(apdu), back, &length);
+        success = nfc.inDataExchange(GUID, sizeof(GUID), back, &length);
         
         if(success) {
          
-          Serial.print("responseLength: "); Serial.println(length);
+          //Serial.print("responseLength: "); Serial.println(length);
            
-          nfc.PrintHexChar(back, length);
+          //nfc.PrintHexChar(back, length);
+          getSsidPwd(back);
+          
         }
         else {
           
@@ -99,10 +102,11 @@ void loop()
 
   delay(1000);
 }
-
+void getSsidPwd(char[]);
+String respBuffer;
 void printResponse(uint8_t *response, uint8_t responseLength) {
   
-   String respBuffer;
+   
 
     for (int i = 0; i < responseLength; i++) {
       
@@ -113,6 +117,8 @@ void printResponse(uint8_t *response, uint8_t responseLength) {
     }
 
     Serial.print("response: "); Serial.println(respBuffer);
+    Serial.println("begin.");
+    
 }
 
 void setupNFC() {
@@ -132,4 +138,16 @@ void setupNFC() {
   
   // configure board to read RFID tags
   nfc.SAMConfig(); 
+}
+void getSsidPwd(char in[]){
+    if(in[0]!=0x00){
+        String buffer = String(in);
+        int separator=buffer.indexOf(0xFE);
+        Serial.println("SSID:");
+        Serial.println(buffer.substring(0,separator));
+        Serial.println("Password:");
+        Serial.println(buffer.substring(separator+1));
+    }
+    else
+        Serial.println("Not a vaild config!");
 }
