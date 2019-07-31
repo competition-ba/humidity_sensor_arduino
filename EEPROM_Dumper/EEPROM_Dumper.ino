@@ -4,7 +4,11 @@ void setup() {
   // put your setup code here, to run once:
     for(int i=0;i<=0x7F;i++)
     {
-        Serial.print((char)EEPROM.read(i));
+        if(!(i%8))
+            Serial.println();
+        Serial.print("0x");
+        Serial.print(EEPROM.read(i),HEX);
+        Serial.print(" ");
     }
 }
 
