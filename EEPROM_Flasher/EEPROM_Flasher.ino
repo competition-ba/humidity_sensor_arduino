@@ -19,15 +19,17 @@ int serial_putc( char c, struct __file * )
 }
 void write(){
   char* guid="2890014BC5CD42BA879B5F2C83E7A270";
-  unsigned char* ip[]={192,168,1,8};
+  unsigned char* ip[]={192,168,1,148};
   for(int i=0;i<=0x1F;i+=1)
     EEPROM.write(i,*(guid+i));
   for(int i=0;i<=3;i+=1)
     EEPROM.write(i+0x20,*(ip+i));
-  char* usernamepwd="802-2.4G wycfhhfh000412 ";
-  usernamepwd[8]=0xFE;
-  usernamepwd[23]=0xFE;
-    for(int i=0;i<=23;i+=1)
+  byte* usernamepwd="ZK2 zk654321 ";
+  for(int i=0;i<strlen(usernamepwd);i++){
+    if(usernamepwd[i]==' ')
+        usernamepwd[i]=0xFE;
+  }
+    for(int i=0;i<strlen(usernamepwd);i+=1)
       EEPROM.write(i+0x24,*(usernamepwd+i));
     EEPROM.write(0x7F,0x00);
   Serial.println("Done writing");  
