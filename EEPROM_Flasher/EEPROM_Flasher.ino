@@ -7,7 +7,7 @@
     Name(0xFE)Pwd(0xFE)
   */
   //Test GUID:2890014B-C5CD-42BA-879B-5F2C83E7A270
-  //Test IP:223.212.33.132
+  //Test IP:47.103.1.240
 void setup() {
   Serial.begin(9600);
   fdevopen( &serial_putc, 0 );
@@ -19,7 +19,7 @@ int serial_putc( char c, struct __file * )
 }
 void write(){
   char* guid="2890014BC5CD42BA879B5F2C83E7A270";
-  unsigned char* ip[]={192,168,1,148};
+  unsigned char* ip[]={47,103,1,240};
   for(int i=0;i<=0x1F;i+=1)
     EEPROM.write(i,*(guid+i));
   for(int i=0;i<=3;i+=1)
@@ -31,7 +31,7 @@ void write(){
   }
     for(int i=0;i<strlen(usernamepwd);i+=1)
       EEPROM.write(i+0x24,*(usernamepwd+i));
-    EEPROM.write(0x7F,0x00);
+    EEPROM.write(0x7F,0x01);
   Serial.println("Done writing");  
 }
 void loop() {

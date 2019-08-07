@@ -148,7 +148,7 @@ void uploadData(){
        mySerial.read();
     mySerial.print("AT+CIPSTART=\"TCP\",\"");  // 连接服务器的8080端口
     mySerial.print(ipdump);
-    mySerial.print("\",8080\r\n");
+    mySerial.print("\",80\r\n");
     delay(2000);
     #ifdef DEBUG
     Serial.print("AT+CIPSTART=\"TCP\",\"");
