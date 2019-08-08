@@ -16,7 +16,7 @@ char* format="{\"GUID\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"DATA\":\"";
 char ipdump[16];
 void longdelay(int m);//长时间暂停
 void setup() {
-    
+    pinMode(LED_BUILTIN, OUTPUT);
     String ssid,pwd;
     int i;
     byte ch;
@@ -88,26 +88,15 @@ void initVal(){
     //Serial.println();
     //接受相关信息
     char ch;
-    int i=0x20;
-    //等待返回IP
+    int i;
     while(Serial.available()==0);
-    for(i;i<0x24;i){
-        while(Serial.available()!=0){
-            EEPROM.write(i++,(char)Serial.read());
-        }
-    }
-    #ifdef DEBUG
-        Serial.println("target IP OK,received:");
-        for(int j=0x20;j<0x24;j++)
-            Serial.println(EEPROM.read(j));
-    #endif
     i = 0x24;
     while(1){
         if(Serial.available()>0){
             ch = Serial.read();
             EEPROM.write(i++,ch);
         }
-        if(ch==' ')
+        if(ch==0x00)
             break;
     }
     EEPROM.write(i-1,0xFE);
@@ -120,16 +109,22 @@ void initVal(){
             ch = Serial.read();
             EEPROM.write(i++,ch);
         }
-        if(ch==' ')
+        if(ch==0x00)
             break;
     }
     EEPROM.write(i-1,0xFE);
+    i = 0x20;
+    for(i;i<0x24;i++){
+        while(!Serial.available());
+        ch = Serial.read();
+        EEPROM.write(i,ch);    
+    }
     //给出配置完成flag
     EEPROM.write(0x7F,0x01);
     #ifdef DEBUG
         Serial.println("ALL ARE OK");
     #endif
-    out:;
+    digitalWrite(LED_BUILTIN, HIGH);
 }
 void uploadData(){
     /*JSON数据：

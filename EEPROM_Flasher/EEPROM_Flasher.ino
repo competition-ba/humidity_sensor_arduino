@@ -31,7 +31,7 @@ void write(){
   }
     for(int i=0;i<strlen(usernamepwd);i+=1)
       EEPROM.write(i+0x24,*(usernamepwd+i));
-    EEPROM.write(0x7F,0x01);
+    EEPROM.write(0x7F,0x00);
   Serial.println("Done writing");  
 }
 void loop() {
