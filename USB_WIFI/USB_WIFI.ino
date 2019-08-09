@@ -75,7 +75,7 @@ void loop() {
     // put your main code here, to run repeatedly:
     uploadData();
     Serial.print("Done send.\r\n");
-    longdelay(1);//10min更新一次
+    longdelay(1);//1min更新一次
 }
 void initVal(){
     while(!Serial);
