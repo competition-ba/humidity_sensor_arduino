@@ -7,7 +7,38 @@
     配置完成flag:0x7F
     0x01:完成
  */
-#include<EEPROM.h>
+/*
+    规定LED的颜色。
+    LED显示颜色值按照“按位运算”的方式确定。
+ */
+#define LED_RED 1
+#define LED_GREEN 2
+#define LED_BLUE 4
+//由于R/G/B针脚相连，只需定义R针脚即可
+#define LED_R_PIN 6
+/*
+    规定LED状态指示灯的颜色。
+    不同状态下的指示灯颜色不同。
+ */
+#define LED_NOT_CONFIGURED LED_RED
+#define LED_CONFIGURE_DONE LED_RED+LED_GREEN
+#define LED_CONNECT_FAILED LED_RED+LED_BLUE
+#define LED_WIFI_CONNECTED LED_BLUE
+#define LED_UPLOADING_DATA LED_GREEN
+/*
+     改变LED颜色
+ */
+void setStatus(char status){
+    digitalWrite(LED_R_PIN  , (status&LED_RED  )   );
+    digitalWrite(LED_R_PIN+1, (status&LED_GREEN)>>1);
+    digitalWrite(LED_R_PIN+2, (status&LED_BLUE )>>2);
+}
+/*
+    规定重置配置(RESET)键位的引脚值。
+    当系统引导时，若为高电位（下拉），则触发"清除配置"动作
+ */
+#define CONFIG_RST 9
+#include <EEPROM.h>
 #include <SoftwareSerial.h>
 //是否开启调试模式
 //#define DEBUG
@@ -16,19 +47,27 @@ char* format="{\"GUID\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"DATA\":\"";
 char ipdump[16];
 void longdelay(int m);//长时间暂停
 void setup() {
-    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(LED_R_PIN, OUTPUT);
+    pinMode(LED_R_PIN+1, OUTPUT);
+    pinMode(LED_R_PIN+2, OUTPUT);
+    pinMode(CONFIG_RST, INPUT);
     String ssid,pwd;
     int i;
     byte ch;
+    //因为我们现在还不清楚是否完成了配置，假设其已经配置完成
+    setStatus(LED_CONFIGURE_DONE);
     //初始化ESP8266 WIFI模块通信串口
     Serial.begin(9600);
     mySerial.begin(9600);
     //将设备GUID填入data中
     for (int i=0x00;i<0x20;i++)
     format[i+9] = (char)EEPROM.read(i);
+    //如果触发了“重置”，则在此抹除“配置完成”标签，强迫进入配置模式
+    if(digitalRead(CONFIG_RST))
+        EEPROM.write(0x7F,0x00);
     //如果没有初始化配置，则进入初始化模式
     if(!(EEPROM.read(0x7F)==0x01))
-    initVal();
+        initVal();
     //读取IP地址
     sprintf(ipdump,"%d.%d.%d.%d",EEPROM.read(0x20),EEPROM.read(0x21),EEPROM.read(0x22),EEPROM.read(0x23));
     //初始化WIFI模块
@@ -69,15 +108,18 @@ void setup() {
         Serial.print((char)mySerial.read());
     #endif
     Serial.print("Done Init.\r\n");
+    setStatus(LED_WIFI_CONNECTED);
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:
+    setStatus(LED_UPLOADING_DATA);
     uploadData();
+    setStatus(LED_WIFI_CONNECTED);
     Serial.print("Done send.\r\n");
     longdelay(1);//1min更新一次
 }
 void initVal(){
+    setStatus(LED_NOT_CONFIGURED);
     while(!Serial);
     //等待设备上线
     while(Serial.available()==0);   
@@ -124,7 +166,7 @@ void initVal(){
     #ifdef DEBUG
         Serial.println("ALL ARE OK");
     #endif
-    digitalWrite(LED_BUILTIN, HIGH);
+    setStatus(LED_CONFIGURE_DONE);
 }
 void uploadData(){
     /*JSON数据：
