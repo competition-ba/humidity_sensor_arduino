@@ -1,3 +1,10 @@
+#include <SPI.h>
+#include <PN532_SPI.h>
+#include <PN532Interface.h>
+#include <PN532.h>
+#include <SoftwareSerial.h>
+#include <EEPROM.h>
+#include <DHT.h>
 /*
     EEPROM布局定义：
     GUID:00-0x1F
@@ -38,12 +45,11 @@ void setStatus(char status){
     当系统引导时，若为高电位（下拉），则触发"清除配置"动作
  */
 #define CONFIG_RST 9
-#include <SPI.h>
-#include <PN532_SPI.h>
-#include <PN532Interface.h>
-#include <PN532.h>
-#include <SoftwareSerial.h>
-#include <EEPROM.h>
+//定义湿度传感器针脚
+#define DHTPIN 10 
+//定义湿度传感器类型
+#define DHTTYPE DHT22
+
 //是否开启调试模式
 #define DEBUG
 SoftwareSerial mySerial(2,3);//TX:3;RX:2
@@ -54,15 +60,18 @@ void longdelay(int m);//长时间暂停
 void uploadData();//发送数据函数
 PN532_SPI pn532spi(SPI, 10);
 PN532 nfc(pn532spi);
+DHT dht(DHTPIN, DHTTYPE);
 void setup()
 {   
-    pinMode(LED_R_PIN, OUTPUT);
-    pinMode(LED_R_PIN+1, OUTPUT);
-    pinMode(LED_R_PIN+2, OUTPUT);
     String ssid,pwd;
     int i;
     byte ch;
+    pinMode(LED_R_PIN, OUTPUT);
+    pinMode(LED_R_PIN+1, OUTPUT);
+    pinMode(LED_R_PIN+2, OUTPUT);
+    pinMode(CONFIG_RST, INPUT);
     mySerial.begin(9600); 
+    setStatus(LED_CONFIGURE_DONE);
     #ifdef DEBUG
     Serial.begin(9600);
     Serial.println("-------Peer to Peer HCE--------");
@@ -240,6 +249,7 @@ void uploadData(){
     /*JSON数据：
      * {"GUID":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","DATA":"XX.XX"}
      */
+    float result;
     mySerial.print("AT+CIPMODE=1\r\n");
     #ifdef DEBUG
     delay(300);
@@ -273,7 +283,8 @@ void uploadData(){
     delay(300);
     mySerial.print(format);
     delay(300);
-    mySerial.print(20.31231,2);
+    result=dht.readHumidity();
+    mySerial.print(result,2);
     delay(300);
     mySerial.print("\"}");// 结束post请求
     delay(3000);

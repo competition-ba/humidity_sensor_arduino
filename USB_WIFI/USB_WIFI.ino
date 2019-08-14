@@ -1,3 +1,6 @@
+#include <DHT.h>
+#include <EEPROM.h>
+#include <SoftwareSerial.h>
 /*
     EEPROM布局定义：
     GUID:00-0x1F
@@ -38,27 +41,32 @@ void setStatus(char status){
     当系统引导时，若为高电位（下拉），则触发"清除配置"动作
  */
 #define CONFIG_RST 9
-#include <EEPROM.h>
-#include <SoftwareSerial.h>
+//定义湿度传感器针脚
+#define DHTPIN 10 
+//定义湿度传感器类型
+#define DHTTYPE DHT22
+
 //是否开启调试模式
 //#define DEBUG
 SoftwareSerial mySerial(2,3);//TX:3;RX:2
 char* format="{\"GUID\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"DATA\":\"";
 char ipdump[16];
 void longdelay(int m);//长时间暂停
+DHT dht(DHTPIN, DHTTYPE);
 void setup() {
+    String ssid,pwd;
+    int i;
+    byte ch;
     pinMode(LED_R_PIN, OUTPUT);
     pinMode(LED_R_PIN+1, OUTPUT);
     pinMode(LED_R_PIN+2, OUTPUT);
     pinMode(CONFIG_RST, INPUT);
-    String ssid,pwd;
-    int i;
-    byte ch;
     //因为我们现在还不清楚是否完成了配置，假设其已经配置完成
     setStatus(LED_CONFIGURE_DONE);
     //初始化ESP8266 WIFI模块通信串口
     Serial.begin(9600);
     mySerial.begin(9600);
+    dht.begin();
     //将设备GUID填入data中
     for (int i=0x00;i<0x20;i++)
     format[i+9] = (char)EEPROM.read(i);
@@ -172,6 +180,7 @@ void uploadData(){
     /*JSON数据：
      * {"GUID":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","DATA":"XX.XX"}
      */
+    float result;
     mySerial.print("AT+CIPMODE=1\r\n");
     #ifdef DEBUG
     delay(300);
@@ -205,7 +214,8 @@ void uploadData(){
     delay(300);
     mySerial.print(format);
     delay(300);
-    mySerial.print(20.31231,2);
+    result=dht.readHumidity();
+    mySerial.print(result,2);
     delay(300);
     mySerial.print("\"}");// 结束post请求
     delay(3000);
