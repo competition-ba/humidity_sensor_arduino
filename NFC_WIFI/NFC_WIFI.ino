@@ -42,7 +42,7 @@ void setStatus(char status){
 }
 /*
     规定重置配置(RESET)键位的引脚值。
-    当系统引导时，若为高电位（下拉），则触发"清除配置"动作
+    当系统引导时，若为低电位（下拉），则触发"清除配置"动作
  */
 #define CONFIG_RST 9
 //定义湿度传感器针脚
@@ -100,7 +100,7 @@ void setup()
         GUID[i] = (char)EEPROM.read(i);
     }
     //如果触发了“重置”，则在此抹除“配置完成”标签，强迫进入配置模式
-    if(digitalRead(CONFIG_RST))
+    if(!digitalRead(CONFIG_RST))
         EEPROM.write(0x7F,0x00);
     //如果没有初始化配置，则进入初始化模式
     if(!(EEPROM.read(0x7F)==0x01))
