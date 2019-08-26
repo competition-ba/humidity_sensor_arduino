@@ -44,7 +44,7 @@ void setStatus(char status){
     规定重置配置(RESET)键位的引脚值。
     当系统引导时，若为低电位（下拉），则触发"清除配置"动作
  */
-#define CONFIG_RST 9
+#define CONFIG_RST 13
 //定义湿度传感器针脚
 #define DHTPIN 10 
 //定义湿度传感器类型

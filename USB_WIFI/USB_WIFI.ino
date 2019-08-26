@@ -40,7 +40,7 @@ void setStatus(char status){
     规定重置配置(RESET)键位的引脚值。
     当系统引导时，若为低电位（下拉），则触发"清除配置"动作
  */
-#define CONFIG_RST 9
+#define CONFIG_RST 13
 //定义湿度传感器针脚
 #define DHTPIN 10 
 //定义湿度传感器类型
@@ -71,7 +71,7 @@ void setup() {
     for (int i=0x00;i<0x20;i++)
     format[i+9] = (char)EEPROM.read(i);
     //如果触发了“重置”，则在此抹除“配置完成”标签，强迫进入配置模式
-    if(!digitalRead(CONFIG_RST))
+    if(digitalRead(CONFIG_RST))
         EEPROM.write(0x7F,0x00);
     //如果没有初始化配置，则进入初始化模式
     if(!(EEPROM.read(0x7F)==0x01))
@@ -122,7 +122,7 @@ void setup() {
 void loop() {
     setStatus(LED_UPLOADING_DATA);
     uploadData();
-    setStatus(LED_WIFI_CONNECTED);
+    
     Serial.print("Done send.\r\n");
     longdelay(1);//1min更新一次
 }
@@ -153,7 +153,6 @@ void initVal(){
     #ifdef DEBUG
         Serial.println("SSID OK,Waiting for PWD");
     #endif
-    i++;
     while(1){
         if(Serial.available()>0){
             ch = Serial.read();
@@ -180,6 +179,34 @@ void uploadData(){
     /*JSON数据：
      * {"GUID":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","DATA":"XX.XX"}
      */
+    /*检测WiFi是否已经连接。
+     * 使用AP指令AT+CWJAP?检测是否连接。
+     * 当连接时，返回的第一位为字符'+'。
+     * 未连接时，返回的第一位为字符'N'(NO AP)。
+     */
+    delay(1500);
+    //首先，我们清空缓冲区。
+    while(mySerial.available()>0)
+       mySerial.read();
+    mySerial.print("AT+CWJAP?\r\n");
+    delay(1500);
+    //跳过自身的指令
+    for(int i=0;i<=11;i++)
+        mySerial.read();
+    char ch=(char)(mySerial.read());
+    #ifdef DEBUG
+    Serial.print("Status character is:");
+    Serial.print(ch);
+    String tmp;
+    while(mySerial.available()>0)
+       tmp += (char)(mySerial.read());
+    Serial.print(tmp);
+    Serial.print("\r\n");
+    #endif
+    if(ch=='N'){
+        setStatus(LED_CONNECT_FAILED);
+        return;
+    }
     float result;
     mySerial.print("AT+CIPMODE=1\r\n");
     #ifdef DEBUG
@@ -226,6 +253,7 @@ void uploadData(){
     while(mySerial.available()>0)
         Serial.print((char)mySerial.read());
     #endif
+    setStatus(LED_WIFI_CONNECTED);
 }
 void longdelay(int m){
     int s=m*60;

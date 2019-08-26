@@ -24,14 +24,14 @@ void write(){
     EEPROM.write(i,*(guid+i));
   for(int i=0;i<=3;i+=1)
     EEPROM.write(i+0x20,*(ip+i));
-  byte* usernamepwd="ZK2 zk654321 ";
+  byte* usernamepwd="fhh 20000412fhh ";
   for(int i=0;i<strlen(usernamepwd);i++){
     if(usernamepwd[i]==' ')
         usernamepwd[i]=0xFE;
   }
     for(int i=0;i<strlen(usernamepwd);i+=1)
       EEPROM.write(i+0x24,*(usernamepwd+i));
-    EEPROM.write(0x7F,0x00);
+    EEPROM.write(0x7F,0x01);
   Serial.println("Done writing");  
 }
 void loop() {
