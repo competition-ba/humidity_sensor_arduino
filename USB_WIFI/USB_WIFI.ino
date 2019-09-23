@@ -45,9 +45,13 @@ void setStatus(char status){
 #define DHTPIN 10 
 //定义湿度传感器类型
 #define DHTTYPE DHT22
-
+/*
+ *规定气体传感器的针脚位置。
+ *气体传感器通过模拟（Analog）方式与Arduino交换数据。
+ */
+#define MQSENSOR A2
 //是否开启调试模式
-//#define DEBUG
+#define DEBUG
 SoftwareSerial mySerial(2,3);//TX:3;RX:2
 char* format="{\"GUID\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"DATA\":\"";
 char ipdump[16];
@@ -184,7 +188,8 @@ void uploadData(){
      * 当连接时，返回的第一位为字符'+'。
      * 未连接时，返回的第一位为字符'N'(NO AP)。
      */
-    delay(1500);
+    String tmp;
+    begin:delay(1500);
     //首先，我们清空缓冲区。
     while(mySerial.available()>0)
        mySerial.read();
@@ -197,12 +202,16 @@ void uploadData(){
     #ifdef DEBUG
     Serial.print("Status character is:");
     Serial.print(ch);
-    String tmp;
+    tmp="";
     while(mySerial.available()>0)
        tmp += (char)(mySerial.read());
     Serial.print(tmp);
     Serial.print("\r\n");
     #endif
+    //如果依然未连接，则在停顿一段时间后重新查询
+    if(ch=='b'){
+        goto begin;
+    }
     if(ch=='N'){
         setStatus(LED_CONNECT_FAILED);
         return;
@@ -231,7 +240,7 @@ void uploadData(){
     #endif
     mySerial.print("AT+CIPSEND\r\n"); // 进入TCP透传模式，接下来发送的所有消息都会发送给服务器
     delay(300);
-    mySerial.print("POST /Arduino/update.jsp"); // 开始发送post请求
+    mySerial.print("POST /Arduino/SenData"); // 开始发送post请求
     delay(300);
     mySerial.print(" HTTP/1.1\r\nContent-Type: application/json;charset=utf-8\r\nHost: "); // post请求的报文格式 
     delay(300);
@@ -243,6 +252,7 @@ void uploadData(){
     delay(300);
     result=dht.readHumidity();
     mySerial.print(result,2);
+    Serial.println(analogRead(MQSENSOR));
     delay(300);
     mySerial.print("\"}");// 结束post请求
     delay(3000);
